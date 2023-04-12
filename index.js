@@ -33,6 +33,7 @@ async function main(config) {
 		streamFormat: "jsonl",
 		fixData: false,
 		logs: true,
+		forceStream: true,
 		//@ts-ignore
 		transformFunc: ampEventsToMp
 	};
@@ -48,6 +49,7 @@ async function main(config) {
 		streamFormat: "jsonl",
 		fixData: true,
 		logs: true,
+		forceStream: true,
 		//@ts-ignore
 		transformFunc: ampUserToMp,
 
