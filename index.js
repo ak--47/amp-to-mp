@@ -34,6 +34,7 @@ async function main(config) {
 		fixData: false,
 		logs: true,
 		forceStream: true,
+		workers: 20,
 		//@ts-ignore
 		transformFunc: ampEventsToMp
 	};
@@ -50,6 +51,7 @@ async function main(config) {
 		fixData: true,
 		logs: true,
 		forceStream: true,
+		workers: 20,
 		//@ts-ignore
 		transformFunc: ampUserToMp,
 
