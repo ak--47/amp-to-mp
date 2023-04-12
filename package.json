@@ -1,0 +1,29 @@
+{
+  "name": "amp-to-mp",
+  "version": "1.0.0",
+  "description": "that is cool!",
+  "main": "index.js",
+  "scripts": {
+    "scratch": "nodemon --inspect -i ./tmp scratch.js",
+    "prune": "rm -rf ./tmp/* && rm -rf ./logs/*",
+    "post": "npm publish"
+  },
+  "bin": {
+	"amp-to-mp": "./index.js"
+  },
+  "type": "module",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ak-tools": "^1.0.322",
+    "dayjs": "^1.11.7",
+    "es-main": "^1.2.0",
+    "got": "^12.6.0",
+    "mixpanel-import": "^2.2.63",
+    "yargs": "^17.7.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}

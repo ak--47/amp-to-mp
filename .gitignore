@@ -1,0 +1,10 @@
+scratch.js
+tmp/*
+!tmp/.gitkeep
+logs/*
+!logs/.gitkeep
+data/*
+!data/.gitkeep
+.DS_Store
+.vscode
+node_modules
