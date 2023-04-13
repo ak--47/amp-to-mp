@@ -8,6 +8,7 @@ import utc from "dayjs/plugin/utc.js";
 import mp from 'mixpanel-import';
 import path from 'path';
 import readline from 'readline';
+import { readFileSync } from 'fs';
 dayjs.extend(utc);
 let logText = ``;
 
@@ -27,7 +28,7 @@ async function main(config) {
 	const l = log(verbose);
 	const p = progress(verbose);
 	l('start!\n\nsettings:\n');
-	l({ project, dir, secret, token, strict, region, verbose, logs})
+	l({ project, dir, secret, token, strict, region, verbose, logs });
 
 	/** @type {import('./node_modules/mixpanel-import/types.js').Options} */
 	const commonOptions = {
@@ -187,9 +188,20 @@ CLI
 
 
 function cli() {
+	if (process?.argv?.slice()?.pop()?.endsWith('.json')) {		
+		try {
+			//@ts-ignore
+			const config = JSON.parse(readFileSync(path.resolve(process.argv.slice().pop())));
+			return config;
+		}
+		catch (e) {
+			//noop
+		}
+	}
+
 	const args = yargs(process.argv.splice(2))
 		.scriptName("")
-		.command('$0', 'usage:\nnpx amp-to-mp --dir ./data ---token bar --secret qux --project foo ', () => { })
+		.command('$0', 'usage:\nnpx amp-to-mp --dir ./data --token bar --secret qux --project foo ', () => { })
 		.option("dir", {
 			alias: 'file',
 			demandOption: true,
@@ -210,7 +222,7 @@ function cli() {
 			demandOption: true,
 			describe: 'mp project id',
 			type: 'number'
-		})		
+		})
 		.option("region", {
 			demandOption: false,
 			default: 'US',
