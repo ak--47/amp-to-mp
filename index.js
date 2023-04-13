@@ -32,7 +32,7 @@ async function main(config) {
 
 	/** @type {import('./node_modules/mixpanel-import/types.js').Options} */
 	const commonOptions = {
-		abridged: false,
+		abridged: true,
 		removeNulls: true,
 		logs: false,
 		verbose: false,
@@ -296,7 +296,12 @@ function summarize(data) {
 
 function log(verbose) {
 	return function (data) {
-		logText += `${data}\n`;
+		if (u.isJSON(data)) {
+			logText += `${u.json(data)}\n`;
+		}
+		else {
+			logText += `${data}\n`;
+		}		
 		if (verbose) console.log(data);
 	};
 }
