@@ -1,10 +1,10 @@
 {
   "name": "amp-to-mp",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "description": "that is cool!",
   "main": "index.js",
   "scripts": {
-    "scratch": "nodemon --inspect -i ./tmp scratch.js",
+    "scratch": "nodemon --inspect -i ./tmp -i ./logs scratch.js",
     "prune": "rm -rf ./tmp/* && rm -rf ./logs/*",
     "post": "npm publish"
   },

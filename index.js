@@ -32,9 +32,10 @@ async function main(config) {
 		strict,
 		streamFormat: "jsonl",
 		fixData: false,
-		logs: true,
+		logs: false,
 		forceStream: true,
-		workers: 3,
+		workers: 25,
+		verbose: false,
 		//@ts-ignore
 		transformFunc: ampEventsToMp
 	};
@@ -49,9 +50,10 @@ async function main(config) {
 		strict,
 		streamFormat: "jsonl",
 		fixData: true,
-		logs: true,
+		logs: false,
 		forceStream: true,
-		workers: 3,
+		workers: 25,
+		verbose: false,
 		//@ts-ignore
 		transformFunc: ampUserToMp,
 
@@ -66,13 +68,28 @@ async function main(config) {
 		project,
 
 	};
+	const events = [];
+	const users = [];
+	const files = (await u.ls(path.resolve(dir))).filter(f => f.endsWith('json'));
+	let eventCount = 0
+	let userCount = 0
 
-	const mpImportEvents = await mp(creds, path.resolve(dir), optionsEvents);
-	const mpImportUsers = await mp(creds, path.resolve(dir), optionsUsers);
-	return {
-		events: mpImportEvents,
-		users: mpImportUsers
-	};
+	for (const file of files) {
+		const data = (await u.load(file)).trim()
+		const evImport = await mp(creds, data, optionsEvents);
+		events.push(evImport);
+		eventCount += evImport.success
+		const usImport = await mp(creds, data, optionsUsers);
+		users.push(usImport);
+		userCount = usImport.success
+		u.progress(`events: ${u.comma(eventCount)} | users: ${u.comma(userCount)}`, "", "")
+	}
+
+	const results = { events, users };
+	await u.mkdir(path.resolve('./logs'));
+	await u.touch(path.resolve('./logs/amplitude-import-log.json'), results, true);
+
+	return results;
 
 }
 
