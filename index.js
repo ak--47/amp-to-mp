@@ -1,64 +1,63 @@
 #! /usr/bin/env node
-
 // @ts-check
 import u from "ak-tools";
 import esMain from 'es-main';
 import yargs from "yargs";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
-dayjs.extend(utc);
 import mp from 'mixpanel-import';
 import path from 'path';
+import readline from 'readline';
+dayjs.extend(utc);
+let logText = ``;
 
-
-let log = ``;
-
+/*
+----
+MAIN
+----
+*/
 
 
 /**
- * do stuff
+ * 
  * @param  {Config} config 
  */
 async function main(config) {
-	const { project, dir, secret, token, strict, region } = config;
+	const { project, dir, secret, token, strict, region = 'US', verbose = true, logs = true } = config;
+	const l = log(verbose);
+	const p = progress(verbose);
+	l('start!\n\nsettings:\n');
+	l({ project, dir, secret, token, strict, region, verbose, logs})
 
 	/** @type {import('./node_modules/mixpanel-import/types.js').Options} */
-
-	const optionsEvents = {
-		abridged: true,
-		recordType: 'event',
+	const commonOptions = {
+		abridged: false,
 		removeNulls: true,
+		logs: false,
+		verbose: false,
+		forceStream: true,
+		streamFormat: "jsonl",
+		workers: 25,
 		region,
 		strict,
-		streamFormat: "jsonl",
-		fixData: false,
-		logs: false,
-		forceStream: true,
-		workers: 25,
-		verbose: false,
-		//@ts-ignore
-		transformFunc: ampEventsToMp
 	};
 
 	/** @type {import('./node_modules/mixpanel-import/types.js').Options} */
+	const optionsEvents = {
+		recordType: 'event',
+		//@ts-ignore
+		transformFunc: ampEventsToMp,
+		...commonOptions
+	};
 
+	/** @type {import('./node_modules/mixpanel-import/types.js').Options} */
 	const optionsUsers = {
-		abridged: true,
 		recordType: 'user',
-		removeNulls: true,
-		region,
-		strict,
-		streamFormat: "jsonl",
 		fixData: true,
-		logs: false,
-		forceStream: true,
-		workers: 25,
-		verbose: false,
 		//@ts-ignore
 		transformFunc: ampUserToMp,
-
+		...commonOptions
 	};
-
 
 	/** @type {import('./node_modules/mixpanel-import/types.js').Creds} */
 	//@ts-ignore
@@ -68,36 +67,50 @@ async function main(config) {
 		project,
 
 	};
-	const events = [];
-	const users = [];
-	const files = (await u.ls(path.resolve(dir))).filter(f => f.endsWith('json'));
-	let eventCount = 0
-	let userCount = 0
+	const eventReceipts = [];
+	const userReceipts = [];
+	let eventCount = 0;
+	let userCount = 0;
+
+	const files = (await u.ls(path.resolve(dir))).filter(f => fileExt.some((ext) => f.endsWith(ext))).reverse();
+	l(`\nfound ${files.length} files\n\n`);
 
 	for (const file of files) {
-		const data = (await u.load(file)).trim()
-		const evImport = await mp(creds, data, optionsEvents);
-		events.push(evImport);
-		eventCount += evImport.success
-		const usImport = await mp(creds, data, optionsUsers);
-		users.push(usImport);
-		userCount = usImport.success
-		u.progress(`events: ${u.comma(eventCount)} | users: ${u.comma(userCount)}`, "", "")
+		//@ts-ignore
+		const data = (await u.load(file)).trim();
+
+		const eventImport = await mp(creds, data, optionsEvents);
+		eventReceipts.push(eventImport);
+		eventCount += eventImport.success;
+
+		const userImport = await mp(creds, data, optionsUsers);
+		userReceipts.push(userImport);
+		userCount = userImport.success;
+
+		p(`events: ${u.comma(eventCount)} | users: ${u.comma(userCount)}\t current: ${path.basename(file)}`);
 	}
 
-	const results = { events, users };
-	await u.mkdir(path.resolve('./logs'));
-	await u.touch(path.resolve('./logs/amplitude-import-log.json'), results, true);
+	const results = { events: summarize(eventReceipts), users: summarize(userReceipts) };
 
+	if (logs) {
+		await u.mkdir(path.resolve('./logs'));
+		await u.touch(path.resolve('./logs/amplitude-import-log-.json'), results, true);
+	}
+	l('\n\nfinish\n\n');
 	return results;
 
 }
+
+/*
+----
+TRANSFORMS
+----
+*/
 
 function ampEventsToMp(ampEvent) {
 	const mixpanelEvent = {
 		"event": ampEvent.event_type,
 		"properties": {
-			//prefer user_id, then device_id, then amplitude_id
 			"$user_id": ampEvent.user_id || "",
 			"$device_id": ampEvent.device_id || "",
 			"time": dayjs.utc(ampEvent.event_time).valueOf(),
@@ -137,7 +150,6 @@ function ampEventsToMp(ampEvent) {
 	//gather everything else
 	mixpanelEvent.properties = { ...ampEvent, ...mixpanelEvent.properties };
 
-
 	return mixpanelEvent;
 }
 
@@ -162,18 +174,26 @@ function ampUserToMp(ampEvent) {
 	return mixpanelProfile;
 }
 
-export default main;
+function ampGroupToMp(ampEvent) {
+	//todo
+}
 
-/**
- * @returns {Config}
- */
+
+/*
+----
+CLI
+----
+*/
+
+
 function cli() {
 	const args = yargs(process.argv.splice(2))
 		.scriptName("")
-		.command('$0', '', () => { })
+		.command('$0', 'usage:\nnpx amp-to-mp --dir ./data ---token bar --secret qux --project foo ', () => { })
 		.option("dir", {
+			alias: 'file',
 			demandOption: true,
-			describe: 'path to files',
+			describe: 'path to UNCOMPRESSED amplitude event file(s)',
 			type: 'string'
 		})
 		.option("token", {
@@ -190,6 +210,12 @@ function cli() {
 			demandOption: true,
 			describe: 'mp project id',
 			type: 'number'
+		})		
+		.option("region", {
+			demandOption: false,
+			default: 'US',
+			describe: 'US or EU',
+			type: 'string'
 		})
 		.option("strict", {
 			demandOption: false,
@@ -197,43 +223,92 @@ function cli() {
 			describe: 'baz',
 			type: 'boolean'
 		})
-		.option("region", {
+		.option("verbose", {
 			demandOption: false,
-			default: 'US',
-			describe: 'US or EU',
-			type: 'string'
+			default: true,
+			describe: 'log messages',
+			type: 'boolean'
+		})
+		.option("logs", {
+			demandOption: false,
+			default: true,
+			describe: 'write logfile',
+			type: 'boolean'
 		})
 		.help()
 		.argv;
-	//@ts-ignore
+	/** @type {Config} */
 	return args;
 }
 
+/*
+----
+LOGGING
+----
+*/
 
-function l(data) {
-	log += `${data}\n`;
-	console.log(data);
+function summarize(data) {
+	const summary = data.reduce(function (acc, curr, index, array) {
+		acc.batches += curr.batches;
+		acc.duration += curr.duration;
+		acc.failed += curr.failed;
+		acc.requests += curr.requests;
+		acc.retries += curr.retries;
+		acc.success += curr.success;
+		acc.total += curr.total;
+
+		acc.eps = u.avg(acc.eps, curr.eps);
+		acc.rps = u.avg(acc.rps, curr.rps);
+
+		acc.errors = [...acc.errors, ...curr.errors];
+		acc.responses = [...acc.responses, ...curr.responses];
+		acc.recordType = curr.recordType;
+		return acc;
+	}, {
+		batches: 0,
+		duration: 0,
+		eps: 0,
+		errors: [],
+		failed: 0,
+		recordType: '',
+		requests: 0,
+		responses: [],
+		retries: 0,
+		rps: 0,
+		success: 0,
+		total: 0,
+
+	});
+	return summary;
 }
 
-if (esMain(import.meta)) {
-	const params = cli();
+function log(verbose) {
+	return function (data) {
+		logText += `${data}\n`;
+		if (verbose) console.log(data);
+	};
+}
 
-	main(params)
-		.then(() => {
-			//noop
-		}).catch((e) => {
-			l(`\nuh oh! something didn't work...\nthe error message is:\n\n\t${e.message}\n\n`);
+function progress(verbose) {
+	return function (message) {
+		if (verbose) {
+			readline.cursorTo(process.stdout, 0);
+			process.stdout.write(`${message}\t\t`);
+		}
+	};
 
-		}).finally(() => {
-			l('\n\nhave a great day!\n\n');
-			process.exit(0);
-		});
 
 }
 
-//mapping amp default to mp defaults
-//https://developers.amplitude.com/docs/identify-api
-//https://help.mixpanel.com/hc/en-us/articles/115004613766-Default-Properties-Collected-by-Mixpanel
+/*
+----
+RANDOM
+----
+*/
+
+//amp to mp default props
+// ? https://developers.amplitude.com/docs/identify-api
+// ? https://help.mixpanel.com/hc/en-us/articles/115004613766-Default-Properties-Collected-by-Mixpanel
 const ampMixPairs = [
 	["app_version", "$app_version_string"],
 	["os_name", "$os"],
@@ -245,3 +320,38 @@ const ampMixPairs = [
 	["region", "$region"],
 	["city", "$city"]
 ];
+
+const fileExt = ['json', 'jsonl', 'ndjson'];
+
+const hero = String.raw`
+ _     _      /___ | ___\         _ 
+|_||V||_)    < ___ | ___ >    |V||_)
+| || ||       \    |    /     | ||  
+	       r&r by AK
+`;
+
+/*
+----
+EXPORTS
+----
+*/
+
+export default main;
+
+if (esMain(import.meta)) {
+	console.log(hero);
+	//@ts-ignore
+	const params = cli();
+	//@ts-ignore
+	main(params)
+		.then(() => {
+			console.log(`\n\nhooray! all done!\n\n`);
+		}).catch((e) => {
+			console.log(`\n\nuh oh! something didn't work...\nthe error message is:\n\n\t${e.message}\n\n@\n\n${e.stack}\n\n`);
+		}).finally(() => {
+			console.log('\n\nhave a great day!\n\n');
+			process.exit(0);
+		});
+
+}
+
