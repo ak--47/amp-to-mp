@@ -12,7 +12,6 @@ import { readFileSync, createReadStream } from 'fs';
 
 import MultiStream from "multistream";
 dayjs.extend(utc);
-let logText = ``;
 
 /*
 ----
@@ -35,11 +34,11 @@ async function main(config) {
 	const commonOptions = {
 		abridged: true,
 		removeNulls: true,
-		logs: false,
-		verbose: true,
+		logs: false,		
 		forceStream: true,
 		streamFormat: "jsonl",
 		workers: 25,
+		verbose,
 		region,
 		strict,
 	};
@@ -69,15 +68,11 @@ async function main(config) {
 		project,
 
 	};
-	const eventReceipts = [];
-	const userReceipts = [];
-	let eventCount = 0;
-	let userCount = 0;
 
-	const files = (await u.ls(path.resolve(dir))).filter(f => fileExt.some((ext) => f.endsWith(ext))).reverse();
+	const files = (await u.ls(path.resolve(dir))).filter(f => fileExt.some((ext) => f.endsWith(ext)));
 	l(`\nfound ${files.length} files... starting import\n\n`);
 
-	const streamEvents = new MultiStream(files.map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
+	const streamEvents = new MultiStream(files.reverse().map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
 	const streamUsers = new MultiStream(files.map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
 	
 	//@ts-ignore
@@ -89,8 +84,6 @@ async function main(config) {
 	l(`\n${u.comma(userImport.success)} user profiles imported`)
 	
 	const results = { events: eventImport, users: userImport };
-
-
 	
 	if (logs) {
 		await u.mkdir(path.resolve('./logs'));
@@ -294,13 +287,7 @@ function summarize(data) {
 }
 
 function log(verbose) {
-	return function (data) {
-		if (u.isJSON(data)) {
-			logText += `${u.json(data)}\n`;
-		}
-		else {
-			logText += `${data}\n`;
-		}
+	return function (data) {		
 		if (verbose) console.log(data);
 	};
 }
