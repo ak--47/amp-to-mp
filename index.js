@@ -25,7 +25,7 @@ async function main(config) {
 	/** @type {import('./node_modules/mixpanel-import/types.js').Options} */
 
 	const optionsEvents = {
-		abridged: false,
+		abridged: true,
 		recordType: 'event',
 		removeNulls: true,
 		region,
@@ -34,7 +34,7 @@ async function main(config) {
 		fixData: false,
 		logs: true,
 		forceStream: true,
-		workers: 20,
+		workers: 3,
 		//@ts-ignore
 		transformFunc: ampEventsToMp
 	};
@@ -42,7 +42,7 @@ async function main(config) {
 	/** @type {import('./node_modules/mixpanel-import/types.js').Options} */
 
 	const optionsUsers = {
-		abridged: false,
+		abridged: true,
 		recordType: 'user',
 		removeNulls: true,
 		region,
@@ -51,7 +51,7 @@ async function main(config) {
 		fixData: true,
 		logs: true,
 		forceStream: true,
-		workers: 20,
+		workers: 3,
 		//@ts-ignore
 		transformFunc: ampUserToMp,
 
