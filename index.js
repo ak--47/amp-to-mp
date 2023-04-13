@@ -8,7 +8,9 @@ import utc from "dayjs/plugin/utc.js";
 import mp from 'mixpanel-import';
 import path from 'path';
 import readline from 'readline';
-import { readFileSync } from 'fs';
+import { readFileSync, createReadStream } from 'fs';
+
+import MultiStream from "multistream";
 dayjs.extend(utc);
 let logText = ``;
 
@@ -26,7 +28,6 @@ MAIN
 async function main(config) {
 	const { project, dir, secret, token, strict, region = 'US', verbose = true, logs = true } = config;
 	const l = log(verbose);
-	const p = progress(verbose);
 	l('start!\n\nsettings:\n');
 	l({ project, dir, secret, token, strict, region, verbose, logs });
 
@@ -35,7 +36,7 @@ async function main(config) {
 		abridged: true,
 		removeNulls: true,
 		logs: false,
-		verbose: false,
+		verbose: true,
 		forceStream: true,
 		streamFormat: "jsonl",
 		workers: 25,
@@ -74,28 +75,26 @@ async function main(config) {
 	let userCount = 0;
 
 	const files = (await u.ls(path.resolve(dir))).filter(f => fileExt.some((ext) => f.endsWith(ext))).reverse();
-	l(`\nfound ${files.length} files\n\n`);
+	l(`\nfound ${files.length} files... starting import\n\n`);
 
-	for (const file of files) {
-		//@ts-ignore
-		const data = (await u.load(file)).trim();
+	const streamEvents = new MultiStream(files.map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
+	const streamUsers = new MultiStream(files.map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
+	
+	//@ts-ignore
+	const eventImport = await mp(creds, streamEvents, optionsEvents);
+	l(`\n${u.comma(eventImport.success)} events imported`)
+	
+	//@ts-ignore
+	const userImport = await mp(creds, streamUsers, optionsUsers);
+	l(`\n${u.comma(userImport.success)} user profiles imported`)
+	
+	const results = { events: eventImport, users: userImport };
 
-		const eventImport = await mp(creds, data, optionsEvents);
-		eventReceipts.push(eventImport);
-		eventCount += eventImport.success;
 
-		const userImport = await mp(creds, data, optionsUsers);
-		userReceipts.push(userImport);
-		userCount = userImport.success;
-
-		p(`events: ${u.comma(eventCount)} | users: ${u.comma(userCount)}\t current: ${path.basename(file)}`);
-	}
-
-	const results = { events: summarize(eventReceipts), users: summarize(userReceipts) };
-
+	
 	if (logs) {
 		await u.mkdir(path.resolve('./logs'));
-		await u.touch(path.resolve('./logs/amplitude-import-log-.json'), results, true);
+		await u.touch(path.resolve(`./logs/amplitude-import-log-${Date.now()}.json`), results, true);
 	}
 	l('\n\nfinish\n\n');
 	return results;
@@ -188,7 +187,7 @@ CLI
 
 
 function cli() {
-	if (process?.argv?.slice()?.pop()?.endsWith('.json')) {		
+	if (process?.argv?.slice()?.pop()?.endsWith('.json')) {
 		try {
 			//@ts-ignore
 			const config = JSON.parse(readFileSync(path.resolve(process.argv.slice().pop())));
@@ -301,21 +300,11 @@ function log(verbose) {
 		}
 		else {
 			logText += `${data}\n`;
-		}		
+		}
 		if (verbose) console.log(data);
 	};
 }
 
-function progress(verbose) {
-	return function (message) {
-		if (verbose) {
-			readline.cursorTo(process.stdout, 0);
-			process.stdout.write(`${message}\t\t`);
-		}
-	};
-
-
-}
 
 /*
 ----
