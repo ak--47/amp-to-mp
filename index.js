@@ -7,7 +7,6 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import mp from 'mixpanel-import';
 import path from 'path';
-import readline from 'readline';
 import { readFileSync, createReadStream } from 'fs';
 
 import MultiStream from "multistream";
@@ -25,16 +24,16 @@ MAIN
  * @param  {Config} config 
  */
 async function main(config) {
-	const { project, dir, secret, token, strict, region = 'US', verbose = true, logs = true } = config;
+	const { project, dir, secret, token, strict, region = 'US', verbose = true, logs = true, events = true, users = true, groups = false } = config;
 	const l = log(verbose);
 	l('start!\n\nsettings:\n');
-	l({ project, dir, secret, token, strict, region, verbose, logs });
+	l({ project, dir, secret, token, strict, region, verbose, logs, events, users, groups });
 
 	/** @type {import('./node_modules/mixpanel-import/types.js').Options} */
 	const commonOptions = {
 		abridged: true,
 		removeNulls: true,
-		logs: false,		
+		logs: false,
 		forceStream: true,
 		streamFormat: "jsonl",
 		workers: 25,
@@ -60,31 +59,58 @@ async function main(config) {
 		...commonOptions
 	};
 
+	/** @type {import('./node_modules/mixpanel-import/types.js').Options} */
+	const optionsGroup = {
+		recordType: 'group',
+		fixData: true,
+		//@ts-ignore
+		transformFunc: ampGroupToMp,
+		...commonOptions
+	};
+
 	/** @type {import('./node_modules/mixpanel-import/types.js').Creds} */
 	//@ts-ignore
 	const creds = {
 		secret,
 		token,
 		project,
-
+		
 	};
 
 	const files = (await u.ls(path.resolve(dir))).filter(f => fileExt.some((ext) => f.endsWith(ext)));
 	l(`\nfound ${files.length} files... starting import\n\n`);
 
-	const streamEvents = new MultiStream(files.reverse().map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
-	const streamUsers = new MultiStream(files.map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
-	
-	//@ts-ignore
-	const eventImport = await mp(creds, streamEvents, optionsEvents);
-	l(`\n${u.comma(eventImport.success)} events imported`)
-	
-	//@ts-ignore
-	const userImport = await mp(creds, streamUsers, optionsUsers);
-	l(`\n${u.comma(userImport.success)} user profiles imported`)
-	
-	const results = { events: eventImport, users: userImport };
-	
+	const streamEvents = new MultiStream(files.slice().reverse().map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
+	const streamUsers = new MultiStream(files.slice().map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
+	const streamGroups = new MultiStream(files.slice().map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
+
+	let eventImport = {};
+	let userImport = {};
+	let groupImport = {};
+
+	if (events) {
+		//@ts-ignore
+		eventImport = await mp(creds, streamEvents, optionsEvents);
+		//@ts-ignore
+		l(`\n${u.comma(eventImport.success)} events imported`);
+	}
+
+	if (users) {
+		//@ts-ignore
+		userImport = await mp(creds, streamUsers, optionsUsers);
+		//@ts-ignore
+		l(`\n${u.comma(userImport.success)} user profiles imported`);
+	}
+
+	if (groups) {
+		//@ts-ignore
+		groupImport = await mp(creds, streamGroups, optionsGroup);
+		//@ts-ignore
+		l(`\n${u.comma(groupImport.success)} user profiles imported`);
+	}
+
+	const results = { events: eventImport, users: userImport, groups: groupImport };
+
 	if (logs) {
 		await u.mkdir(path.resolve('./logs'));
 		await u.touch(path.resolve(`./logs/amplitude-import-log-${Date.now()}.json`), results, true);
@@ -117,8 +143,8 @@ function ampEventsToMp(ampEvent) {
 
 	};
 
-	//get all custom props
-	mixpanelEvent.properties = { ...ampEvent.event_properties, ...mixpanelEvent.properties };
+	//get all custom props + group props
+	mixpanelEvent.properties = { ...ampEvent.event_properties, ...ampEvent.groups, ...mixpanelEvent.properties };
 
 	//remove what we don't need
 	delete ampEvent.user_id;
@@ -148,13 +174,15 @@ function ampEventsToMp(ampEvent) {
 
 function ampUserToMp(ampEvent) {
 	const userProps = ampEvent.user_properties;
+
+	//skip empty + no user_id
 	if (JSON.stringify(userProps) === '{}') return {};
 	if (!ampEvent.user_id) return {};
 
 	const mixpanelProfile = {
 		"$distinct_id": ampEvent.user_id,
 		"$ip": ampEvent.ip_address,
-		"$set": ampEvent.user_properties
+		"$set": userProps
 	};
 
 	//include defaults, if they exist
@@ -168,7 +196,19 @@ function ampUserToMp(ampEvent) {
 }
 
 function ampGroupToMp(ampEvent) {
-	//todo
+	const groupProps = ampEvent.group_properties;
+
+	//skip empty + no user_id
+	if (JSON.stringify(groupProps) === '{}') return {};
+	if (!ampEvent.user_id) return {};
+
+	const mixpanelGroup = {
+		"$group_key": null, //todo
+		"$group_id": null,		 //todo
+		"$set": groupProps
+	};
+
+	return mixpanelGroup;
 }
 
 
@@ -225,6 +265,24 @@ function cli() {
 			demandOption: false,
 			default: false,
 			describe: 'baz',
+			type: 'boolean'
+		})
+		.option("events", {
+			demandOption: false,
+			default: true,
+			describe: 'events',
+			type: 'boolean'
+		})
+		.option("users", {
+			demandOption: false,
+			default: true,
+			describe: 'user profiles',
+			type: 'boolean'
+		})
+		.option("groups", {
+			demandOption: false,
+			default: false,
+			describe: 'group profiles',
 			type: 'boolean'
 		})
 		.option("verbose", {
@@ -287,7 +345,7 @@ function summarize(data) {
 }
 
 function log(verbose) {
-	return function (data) {		
+	return function (data) {
 		if (verbose) console.log(data);
 	};
 }
@@ -313,6 +371,7 @@ const ampMixPairs = [
 	["region", "$region"],
 	["city", "$city"]
 ];
+
 
 const fileExt = ['json', 'jsonl', 'ndjson'];
 

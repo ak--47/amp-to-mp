@@ -21,11 +21,11 @@ interface Config {
     /**
      * use strict mode?
      */
-    strict: boolean;
+    strict?: boolean;
     /**
      * US or EU residency
      */
-    region: "US" | "EU" | undefined;
+    region?: "US" | "EU" | undefined;
     /**
      * group keys (if applicable)
      */
@@ -38,5 +38,17 @@ interface Config {
      * write logs to file
      */
     logs: boolean;
-	[x: string]: unknown
+    /**
+     * send events
+     */
+    events?: boolean;
+    /**
+     * send users
+     */
+    users?: boolean;
+    /**
+     * send groups
+     */
+    groups?: boolean;
+    [x: string]: unknown;
 }
