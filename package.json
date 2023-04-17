@@ -22,7 +22,7 @@
     "dayjs": "^1.11.7",
     "es-main": "^1.2.0",
     "got": "^12.6.0",
-    "mixpanel-import": "^2.2.63",
+    "mixpanel-import": "^2.3.0",
     "multistream": "^4.1.0",
     "yargs": "^17.7.1"
   },
