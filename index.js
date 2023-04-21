@@ -143,8 +143,8 @@ function ampEventsToMp(ampEvent) {
 
 	};
 
-	//get all custom props + group props
-	mixpanelEvent.properties = { ...ampEvent.event_properties, ...ampEvent.groups, ...mixpanelEvent.properties };
+	//get all custom props + group props + user props
+	mixpanelEvent.properties = { ...ampEvent.event_properties, ...ampEvent.groups, ...ampEvent.user_properties, ...mixpanelEvent.properties };
 
 	//remove what we don't need
 	delete ampEvent.user_id;
