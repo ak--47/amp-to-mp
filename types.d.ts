@@ -22,6 +22,11 @@ interface Config {
      * use strict mode?
      */
     strict?: boolean;
+	/**
+	 * a custom key to use for $user_id instead of amplitude default (user_id)
+	 * see //? https://www.docs.developers.amplitude.com/analytics/apis/export-api/
+	 */
+	custom_user_id?: string;
     /**
      * US or EU residency
      */
@@ -51,4 +56,13 @@ interface Config {
      */
     groups?: boolean;
     [x: string]: unknown;
+}
+
+
+interface CustomTransformOptions {
+	/**
+	 * a custom key to use for $user_id instead of amplitude default (user_id)
+	 * see //? https://www.docs.developers.amplitude.com/analytics/apis/export-api/
+	 */
+	custom_user_id?: string;
 }

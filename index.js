@@ -24,12 +24,13 @@ MAIN
  * @param  {Config} config 
  */
 async function main(config) {
-	const { project, dir, secret, token, strict, region = 'US', verbose = true, logs = true, events = true, users = true, groups = false } = config;
+	const { project, dir, secret, token, strict, region = 'US', verbose = true, logs = true, events = true, users = true, groups = false, custom_user_id = "user_id" } = config;
+	const transformOpts = { custom_user_id };
 	const l = log(verbose);
 	l('start!\n\nsettings:\n');
-	l({ project, dir, secret, token, strict, region, verbose, logs, events, users, groups });
+	l({ project, dir, secret, token, strict, region, verbose, logs, events, users, groups, custom_user_id });
 
-	/** @type {import('./node_modules/mixpanel-import/types.js').Options} */
+	/** @type {import('mixpanel-import').Options} */
 	const commonOptions = {
 		abridged: true,
 		removeNulls: true,
@@ -42,39 +43,39 @@ async function main(config) {
 		strict,
 	};
 
-	/** @type {import('./node_modules/mixpanel-import/types.js').Options} */
+	/** @type {import('mixpanel-import').Options} */
 	const optionsEvents = {
 		recordType: 'event',
 		//@ts-ignore
-		transformFunc: ampEventsToMp,
+		transformFunc: ampEventsToMp(transformOpts),
 		...commonOptions
 	};
 
-	/** @type {import('./node_modules/mixpanel-import/types.js').Options} */
+	/** @type {import('mixpanel-import').Options} */
 	const optionsUsers = {
 		recordType: 'user',
 		fixData: true,
 		//@ts-ignore
-		transformFunc: ampUserToMp,
+		transformFunc: ampUserToMp(transformOpts),
 		...commonOptions
 	};
 
-	/** @type {import('./node_modules/mixpanel-import/types.js').Options} */
+	/** @type {import('mixpanel-import').Options} */
 	const optionsGroup = {
 		recordType: 'group',
 		fixData: true,
 		//@ts-ignore
-		transformFunc: ampGroupToMp,
+		transformFunc: ampGroupToMp(transformOpts),
 		...commonOptions
 	};
 
-	/** @type {import('./node_modules/mixpanel-import/types.js').Creds} */
+	/** @type {import('mixpanel-import').Creds} */
 	//@ts-ignore
 	const creds = {
 		secret,
 		token,
 		project,
-		
+
 	};
 
 	const files = (await u.ls(path.resolve(dir))).filter(f => fileExt.some((ext) => f.endsWith(ext)));
@@ -126,89 +127,110 @@ TRANSFORMS
 ----
 */
 
-function ampEventsToMp(ampEvent) {
-	const mixpanelEvent = {
-		"event": ampEvent.event_type,
-		"properties": {
-			"$user_id": ampEvent.user_id || "",
-			"$device_id": ampEvent.device_id || "",
-			"time": dayjs.utc(ampEvent.event_time).valueOf(),
-			"$insert_id": ampEvent.$insert_id,
-			"ip": ampEvent.ip_address,
-			"$city": ampEvent.city,
-			"$region": ampEvent.region,
-			"mp_country_code": ampEvent.country,
-			"$source": `amplitude-to-mixpanel`
+/**
+ * @param  {CustomTransformOptions} options
+ */
+function ampEventsToMp(options) {
+	const { custom_user_id } = options;
+
+	return function transform(ampEvent) {
+		const mixpanelEvent = {
+			"event": ampEvent.event_type,
+			"properties": {
+				"$user_id": ampEvent[custom_user_id] || "",
+				"$device_id": ampEvent.device_id || "",
+				"time": dayjs.utc(ampEvent.event_time).valueOf(),
+				"$insert_id": ampEvent.$insert_id,
+				"ip": ampEvent.ip_address,
+				"$city": ampEvent.city,
+				"$region": ampEvent.region,
+				"mp_country_code": ampEvent.country,
+				"$source": `amplitude-to-mixpanel`
+			}
+
+		};
+
+		//get all custom props + group props + user props
+		mixpanelEvent.properties = { ...ampEvent.event_properties, ...ampEvent.groups, ...ampEvent.user_properties, ...mixpanelEvent.properties };
+
+		//remove what we don't need
+		delete ampEvent[custom_user_id];
+		delete ampEvent.device_id;
+		delete ampEvent.event_time;
+		delete ampEvent.$insert_id;
+		delete ampEvent.user_properties;
+		delete ampEvent.group_properties;
+		delete ampEvent.global_user_properties;
+		delete ampEvent.event_properties;
+		delete ampEvent.groups;
+		delete ampEvent.data;
+
+		//fill in defaults & delete from amp data (if found)
+		for (let ampMixPair of ampMixPairs) {
+			if (ampEvent[ampMixPair[0]]) {
+				mixpanelEvent.properties[ampMixPair[1]] = ampEvent[ampMixPair[0]];
+				delete ampEvent[ampMixPair[0]];
+			}
 		}
 
+		//gather everything else
+		mixpanelEvent.properties = { ...ampEvent, ...mixpanelEvent.properties };
+
+		return mixpanelEvent;
 	};
-
-	//get all custom props + group props + user props
-	mixpanelEvent.properties = { ...ampEvent.event_properties, ...ampEvent.groups, ...ampEvent.user_properties, ...mixpanelEvent.properties };
-
-	//remove what we don't need
-	delete ampEvent.user_id;
-	delete ampEvent.device_id;
-	delete ampEvent.event_time;
-	delete ampEvent.$insert_id;
-	delete ampEvent.user_properties;
-	delete ampEvent.group_properties;
-	delete ampEvent.global_user_properties;
-	delete ampEvent.event_properties;
-	delete ampEvent.groups;
-	delete ampEvent.data;
-
-	//fill in defaults & delete from amp data (if found)
-	for (let ampMixPair of ampMixPairs) {
-		if (ampEvent[ampMixPair[0]]) {
-			mixpanelEvent.properties[ampMixPair[1]] = ampEvent[ampMixPair[0]];
-			delete ampEvent[ampMixPair[0]];
-		}
-	}
-
-	//gather everything else
-	mixpanelEvent.properties = { ...ampEvent, ...mixpanelEvent.properties };
-
-	return mixpanelEvent;
 }
 
-function ampUserToMp(ampEvent) {
-	const userProps = ampEvent.user_properties;
+/**
+ * @param  {CustomTransformOptions} options
+ */
+function ampUserToMp(options) {
+	const { custom_user_id } = options;
 
-	//skip empty + no user_id
-	if (JSON.stringify(userProps) === '{}') return {};
-	if (!ampEvent.user_id) return {};
+	return function transform(ampEvent) {
+		const userProps = ampEvent.user_properties;
 
-	const mixpanelProfile = {
-		"$distinct_id": ampEvent.user_id,
-		"$ip": ampEvent.ip_address,
-		"$set": userProps
-	};
+		//skip empty + no user_id
+		if (JSON.stringify(userProps) === '{}') return {};
+		if (!ampEvent[custom_user_id]) return {};
 
-	//include defaults, if they exist
-	for (let ampMixPair of ampMixPairs) {
-		if (ampEvent[ampMixPair[0]]) {
-			mixpanelProfile.$set[ampMixPair[1]] = ampEvent[ampMixPair[0]];
+		const mixpanelProfile = {
+			"$distinct_id": ampEvent[custom_user_id],
+			"$ip": ampEvent.ip_address,
+			"$set": userProps
+		};
+
+		//include defaults, if they exist
+		for (let ampMixPair of ampMixPairs) {
+			if (ampEvent[ampMixPair[0]]) {
+				mixpanelProfile.$set[ampMixPair[1]] = ampEvent[ampMixPair[0]];
+			}
 		}
-	}
 
-	return mixpanelProfile;
+		return mixpanelProfile;
+	};
 }
 
-function ampGroupToMp(ampEvent) {
-	const groupProps = ampEvent.group_properties;
+/**
+ * @param  {CustomTransformOptions} options
+ */
+function ampGroupToMp(options) {
+	const { custom_user_id } = options;
 
-	//skip empty + no user_id
-	if (JSON.stringify(groupProps) === '{}') return {};
-	if (!ampEvent.user_id) return {};
+	return function transform(ampEvent) {
+		const groupProps = ampEvent.group_properties;
 
-	const mixpanelGroup = {
-		"$group_key": null, //todo
-		"$group_id": null,		 //todo
-		"$set": groupProps
+		//skip empty + no user_id
+		if (JSON.stringify(groupProps) === '{}') return {};
+		if (!ampEvent.user_id) return {};
+
+		const mixpanelGroup = {
+			"$group_key": null, //todo
+			"$group_id": null,		 //todo
+			"$set": groupProps
+		};
+
+		return mixpanelGroup;
 	};
-
-	return mixpanelGroup;
 }
 
 
@@ -266,6 +288,12 @@ function cli() {
 			default: false,
 			describe: 'baz',
 			type: 'boolean'
+		})
+		.option("custom_user_id", {
+			demandOption: false,
+			default: "user_id",
+			describe: 'a custom key to use for $user_id instead of amplitude default (user_id)',
+			type: 'string'
 		})
 		.option("events", {
 			demandOption: false,
