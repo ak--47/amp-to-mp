@@ -398,8 +398,10 @@ if (esMain(import.meta)) {
 	main(params)
 		.then(() => {
 			console.log(`\n\nhooray! all done!\n\n`);
+			process.exit(0);
 		}).catch((e) => {
 			console.log(`\n\nuh oh! something didn't work...\nthe error message is:\n\n\t${e.message}\n\n@\n\n${e.stack}\n\n`);
+			process.exit(1);
 		}).finally(() => {
 			console.log('\n\nhave a great day!\n\n');
 			process.exit(0);
