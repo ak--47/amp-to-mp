@@ -14,7 +14,7 @@ const timeout = 60000;
 
 
 const CONFIG = {
-	dir: "./data/sample",
+	dir: "./data/sample/pintara",
 	token,
 	secret,
 	project,
@@ -40,7 +40,7 @@ describe('e2e', () => {
 		const { events, users, groups } = await main(CONFIG);
 		expect(events.success).toBe(8245);
 		expect(events.failed).toBe(0);
-		expect(users.success).toBe(8203);
+		expect(users.success).toBe(8245);
 		expect(users.failed).toBe(0);
 		expect(JSON.stringify(groups)).toBe('{}');
 
@@ -61,6 +61,8 @@ describe('e2e', () => {
 		const run = execSync(`node ./index.js --dir ${dir} --token ${token} --secret ${secret} --project ${project} --region ${region} --strict ${strict} --events ${events} --users ${users} --grouos ${groups} --verbose ${verbose}`)
 		expect(run.toString().trim().includes('hooray! all done!')).toBe(true)
 	});
+
+	//todo test custom id resolution
 });
 
 

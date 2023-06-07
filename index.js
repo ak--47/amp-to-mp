@@ -77,13 +77,13 @@ async function main(config) {
 		project,
 
 	};
-
-	const files = (await u.ls(path.resolve(dir))).filter(f => fileExt.some((ext) => f.endsWith(ext)));
+	const dataFolder = path.resolve(dir);
+	const files = (await u.ls(dataFolder)).filter(f => fileExt.some((ext) => f.endsWith(ext)));
 	l(`\nfound ${files.length} files... starting import\n\n`);
 
-	const streamEvents = new MultiStream(files.slice().reverse().map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
-	const streamUsers = new MultiStream(files.slice().map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
-	const streamGroups = new MultiStream(files.slice().map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
+	// const streamEvents = new MultiStream(files.slice().reverse().map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
+	// const streamUsers = new MultiStream(files.slice().map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
+	// const streamGroups = new MultiStream(files.slice().map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
 
 	let eventImport = {};
 	let userImport = {};
@@ -91,21 +91,21 @@ async function main(config) {
 
 	if (events) {
 		//@ts-ignore
-		eventImport = await mp(creds, streamEvents, optionsEvents);
+		eventImport = await mp(creds, dataFolder, optionsEvents);
 		//@ts-ignore
 		l(`\n${u.comma(eventImport.success)} events imported`);
 	}
 
 	if (users) {
 		//@ts-ignore
-		userImport = await mp(creds, streamUsers, optionsUsers);
+		userImport = await mp(creds, dataFolder, optionsUsers);
 		//@ts-ignore
 		l(`\n${u.comma(userImport.success)} user profiles imported`);
 	}
 
 	if (groups) {
 		//@ts-ignore
-		groupImport = await mp(creds, streamGroups, optionsGroup);
+		groupImport = await mp(creds, dataFolder, optionsGroup);
 		//@ts-ignore
 		l(`\n${u.comma(groupImport.success)} user profiles imported`);
 	}
@@ -137,7 +137,6 @@ function ampEventsToMp(options) {
 		const mixpanelEvent = {
 			"event": ampEvent.event_type,
 			"properties": {
-				"$user_id": ampEvent[custom_user_id] || "",
 				"$device_id": ampEvent.device_id || "",
 				"time": dayjs.utc(ampEvent.event_time).valueOf(),
 				"$insert_id": ampEvent.$insert_id,
@@ -149,6 +148,10 @@ function ampEventsToMp(options) {
 			}
 
 		};
+
+		//canonical id resolution		
+		if (ampEvent?.user_properties?.[custom_user_id]) mixpanelEvent.properties.$user_id = ampEvent.user_properties[custom_user_id];
+		if (ampEvent[custom_user_id]) mixpanelEvent.properties.$user_id = ampEvent[custom_user_id];
 
 		//get all custom props + group props + user props
 		mixpanelEvent.properties = { ...ampEvent.event_properties, ...ampEvent.groups, ...ampEvent.user_properties, ...mixpanelEvent.properties };
@@ -189,12 +192,19 @@ function ampUserToMp(options) {
 	return function transform(ampEvent) {
 		const userProps = ampEvent.user_properties;
 
-		//skip empty + no user_id
+		//skip empty props
 		if (JSON.stringify(userProps) === '{}') return {};
-		if (!ampEvent[custom_user_id]) return {};
+
+		let distinct_id;
+		//canonical id resolution		
+		if (ampEvent?.user_properties?.[custom_user_id]) distinct_id = ampEvent.user_properties[custom_user_id];
+		if (ampEvent[custom_user_id]) distinct_id = ampEvent[custom_user_id];
+
+		//skip no user_id
+		if (!distinct_id) return {};
 
 		const mixpanelProfile = {
-			"$distinct_id": ampEvent[custom_user_id],
+			"$distinct_id": distinct_id,
 			"$ip": ampEvent.ip_address,
 			"$set": userProps
 		};
