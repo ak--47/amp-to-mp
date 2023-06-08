@@ -89,18 +89,18 @@ async function main(config) {
 	let userImport = {};
 	let groupImport = {};
 
-	if (events) {
-		//@ts-ignore
-		eventImport = await mp(creds, dataFolder, optionsEvents);
-		//@ts-ignore
-		l(`\n${u.comma(eventImport.success)} events imported`);
-	}
-
 	if (users) {
 		//@ts-ignore
 		userImport = await mp(creds, dataFolder, optionsUsers);
 		//@ts-ignore
 		l(`\n${u.comma(userImport.success)} user profiles imported`);
+	}
+
+	if (events) {
+		//@ts-ignore
+		eventImport = await mp(creds, dataFolder, optionsEvents);
+		//@ts-ignore
+		l(`\n${u.comma(eventImport.success)} events imported`);
 	}
 
 	if (groups) {
