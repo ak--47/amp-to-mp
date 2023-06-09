@@ -30,7 +30,7 @@ interface Config {
     /**
      * mixpanel project id
      */
-    project: number;
+    project: number | string;
     /**
      * mixpanel token
      */

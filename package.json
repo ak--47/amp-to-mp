@@ -1,6 +1,6 @@
 {
   "name": "amp-to-mp",
-  "version": "1.1.1",
+  "version": "1.1.12",
   "description": "basic CLI for moving amplitude data to mixpanel",
   "main": "index.js",
   "scripts": {
