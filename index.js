@@ -8,8 +8,6 @@ import utc from "dayjs/plugin/utc.js";
 import mp from 'mixpanel-import';
 import path from 'path';
 import { lstatSync } from 'fs';
-
-import MultiStream from "multistream";
 dayjs.extend(utc);
 
 /*
@@ -21,7 +19,7 @@ MAIN
 
 /**
  * 
- * @param  {Config} config 
+ * @param  {import('./types.d.ts').Config} config 
  */
 async function main(config) {
 	const { project, dir = "", file = "", secret, token, strict, region = 'US', verbose = false, logs = true, events = true, users = true, groups = false, custom_user_id = "user_id" } = config;
@@ -143,7 +141,7 @@ TRANSFORMS
 */
 
 /**
- * @param  {CustomTransformOptions} options
+ * @param  {import('./types.d.ts').CustomTransformOptions} options
  */
 function ampEventsToMp(options) {
 	const { custom_user_id } = options;
@@ -199,7 +197,7 @@ function ampEventsToMp(options) {
 }
 
 /**
- * @param  {CustomTransformOptions} options
+ * @param  {import('./types.d.ts').CustomTransformOptions} options
  */
 function ampUserToMp(options) {
 	const { custom_user_id } = options;
@@ -236,7 +234,7 @@ function ampUserToMp(options) {
 }
 
 /**
- * @param  {CustomTransformOptions} options
+ * @param  {import('./types.d.ts').CustomTransformOptions} options
  */
 function ampGroupToMp(options) {
 	const { custom_user_id } = options;
@@ -342,7 +340,7 @@ function cli() {
 		})
 		.help()
 		.argv;
-	/** @type {Config} */
+	/** @type {import('./types.d.ts').Config} */
 	return args;
 }
 

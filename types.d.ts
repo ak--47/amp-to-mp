@@ -1,4 +1,17 @@
 /**
+ * a module to import amplitude data into mixpanel
+ */
+export default async function main(config: Config): Promise<Results>;
+
+import { ImportResults } from "mixpanel-import";
+
+interface Results {
+	events: ImportResults;
+	users: ImportResults;
+	groups: {};
+}
+
+/**
  * an object to store configuration params
  */
 interface Config {
