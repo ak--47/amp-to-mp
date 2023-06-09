@@ -5,7 +5,11 @@ interface Config {
     /**
      * a directory containing UNCOMPRESSED amplitude event json
      */
-    dir: string;
+    dir?: string;
+    /**
+     * a file containing UNCOMPRESSED amplitude event json
+     */
+    file?: string;
     /**
      * mixpanel secret
      */
@@ -22,11 +26,11 @@ interface Config {
      * use strict mode?
      */
     strict?: boolean;
-	/**
-	 * a custom key to use for $user_id instead of amplitude default (user_id)
-	 * see //? https://www.docs.developers.amplitude.com/analytics/apis/export-api/
-	 */
-	custom_user_id?: string;
+    /**
+     * a custom key to use for $user_id instead of amplitude default (user_id)
+     * see //? https://www.docs.developers.amplitude.com/analytics/apis/export-api/
+     */
+    custom_user_id?: string;
     /**
      * US or EU residency
      */
@@ -58,11 +62,10 @@ interface Config {
     [x: string]: unknown;
 }
 
-
 interface CustomTransformOptions {
-	/**
-	 * a custom key to use for $user_id instead of amplitude default (user_id)
-	 * see //? https://www.docs.developers.amplitude.com/analytics/apis/export-api/
-	 */
-	custom_user_id?: string;
+    /**
+     * a custom key to use for $user_id instead of amplitude default (user_id)
+     * see //? https://www.docs.developers.amplitude.com/analytics/apis/export-api/
+     */
+    custom_user_id?: string;
 }

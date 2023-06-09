@@ -63,6 +63,20 @@ describe('e2e', () => {
 	});
 
 	//todo test custom id resolution
+
+
+	test('works with individual files', async () => {
+		console.log('INDIVIDUAL FILES TEST');
+		const { events, users, groups } = await main({
+			...CONFIG,
+			file: './data/sample/pintara/2023-04-10_11#0.json'
+		});
+		expect(events.success).toBe(8245);
+		expect(events.failed).toBe(0);
+		expect(users.success).toBe(8245);
+		expect(users.failed).toBe(0);
+		expect(JSON.stringify(groups)).toBe('{}');
+	})
 });
 
 

@@ -7,7 +7,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import mp from 'mixpanel-import';
 import path from 'path';
-import { readFileSync, createReadStream } from 'fs';
+import { lstatSync } from 'fs';
 
 import MultiStream from "multistream";
 dayjs.extend(utc);
@@ -24,11 +24,11 @@ MAIN
  * @param  {Config} config 
  */
 async function main(config) {
-	const { project, dir, secret, token, strict, region = 'US', verbose = true, logs = true, events = true, users = true, groups = false, custom_user_id = "user_id" } = config;
+	const { project, dir = "", file = "", secret, token, strict, region = 'US', verbose = false, logs = true, events = true, users = true, groups = false, custom_user_id = "user_id" } = config;
 	const transformOpts = { custom_user_id };
 	const l = log(verbose);
 	l('start!\n\nsettings:\n');
-	l({ project, dir, secret, token, strict, region, verbose, logs, events, users, groups, custom_user_id });
+	l({ project, dir, file, secret, token, strict, region, verbose, logs, events, users, groups, custom_user_id });
 
 	/** @type {import('mixpanel-import').Options} */
 	const commonOptions = {
@@ -77,13 +77,28 @@ async function main(config) {
 		project,
 
 	};
-	const dataFolder = path.resolve(dir);
-	const files = (await u.ls(dataFolder)).filter(f => fileExt.some((ext) => f.endsWith(ext)));
-	l(`\nfound ${files.length} files... starting import\n\n`);
+	const userInputPath = path.resolve(dir || file);
+	let pathInfos;
+	try {
+		pathInfos = lstatSync(userInputPath);
+	}
+	catch (e) {
+		throw `path ${userInputPath} not found; file or folder does not exist`
+	}
+	
+	const data = userInputPath;
+	if (verbose) {
+		//file case			
+		if (pathInfos.isFile()) {
+			l(`\nfound 1 file... starting import\n\n`);
+		}
+		//folder case
+		if (pathInfos.isDirectory()) {
+			const numFiles = (await u.ls(userInputPath)).filter(f => fileExt.some((ext) => f.endsWith(ext)));
+			l(`\nfound ${numFiles.length} files... starting import\n\n`);
+		}
+	}
 
-	// const streamEvents = new MultiStream(files.slice().reverse().map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
-	// const streamUsers = new MultiStream(files.slice().map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
-	// const streamGroups = new MultiStream(files.slice().map((file) => { return createReadStream(file); }), { highWaterMark: 2 ^ 27 });
 
 	let eventImport = {};
 	let userImport = {};
@@ -91,21 +106,21 @@ async function main(config) {
 
 	if (users) {
 		//@ts-ignore
-		userImport = await mp(creds, dataFolder, optionsUsers);
+		userImport = await mp(creds, data, optionsUsers);
 		//@ts-ignore
 		l(`\n${u.comma(userImport.success)} user profiles imported`);
 	}
 
 	if (events) {
 		//@ts-ignore
-		eventImport = await mp(creds, dataFolder, optionsEvents);
+		eventImport = await mp(creds, data, optionsEvents);
 		//@ts-ignore
 		l(`\n${u.comma(eventImport.success)} events imported`);
 	}
 
 	if (groups) {
 		//@ts-ignore
-		groupImport = await mp(creds, dataFolder, optionsGroup);
+		groupImport = await mp(creds, data, optionsGroup);
 		//@ts-ignore
 		l(`\n${u.comma(groupImport.success)} user profiles imported`);
 	}
@@ -252,16 +267,6 @@ CLI
 
 
 function cli() {
-	if (process?.argv?.slice()?.pop()?.endsWith('.json')) {
-		try {
-			//@ts-ignore
-			const config = JSON.parse(readFileSync(path.resolve(process.argv.slice().pop())));
-			return config;
-		}
-		catch (e) {
-			//noop
-		}
-	}
 
 	const args = yargs(process.argv.splice(2))
 		.scriptName("")
@@ -269,7 +274,7 @@ function cli() {
 		.option("dir", {
 			alias: 'file',
 			demandOption: true,
-			describe: 'path to UNCOMPRESSED amplitude event file(s)',
+			describe: 'path to (or file of) UNCOMPRESSED amplitude event json',
 			type: 'string'
 		})
 		.option("token", {
