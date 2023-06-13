@@ -3,7 +3,7 @@
  */
 export default async function main(config: Config): Promise<Results>;
 
-import { ImportResults } from "mixpanel-import";
+import { ImportResults, Options } from "mixpanel-import";
 
 interface Results {
 	events: ImportResults;
@@ -72,6 +72,14 @@ interface Config {
      * send groups
      */
     groups?: boolean;
+	/**
+	 * rename prop keys
+	 */
+	aliases: Options["aliases"];
+	/**
+	 * add arbitrary k:v pairs to records
+	 */
+	tags: Options["tags"];
     [x: string]: unknown;
 }
 
