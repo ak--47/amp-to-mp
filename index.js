@@ -30,7 +30,7 @@ async function main(config) {
         strict,
         region = "US",
         verbose = false,
-        logs = true,
+        logs = false,
         events = true,
         users = true,
         groups = false,
@@ -61,6 +61,7 @@ async function main(config) {
     /** @type {import('mixpanel-import').Options} */
     const optionsEvents = {
         recordType: "event",
+		compress: true,
         //@ts-ignore
         transformFunc: ampEventsToMp(transformOpts),
         ...commonOptions
