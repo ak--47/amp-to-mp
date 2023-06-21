@@ -36,7 +36,8 @@ async function main(config) {
         groups = false,
         custom_user_id = "user_id",
         aliases = {},
-        tags = {}
+        tags = {},
+		...otherOpts
     } = config;
     const transformOpts = { custom_user_id };
     const l = log(verbose);

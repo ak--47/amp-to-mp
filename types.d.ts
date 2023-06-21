@@ -14,7 +14,7 @@ interface Results {
 /**
  * an object to store configuration params
  */
-interface Config {
+interface Config extends Options {
     /**
      * a directory containing UNCOMPRESSED amplitude event json
      */
