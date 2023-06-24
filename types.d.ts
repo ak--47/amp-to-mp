@@ -4,11 +4,12 @@
 export default async function main(config: Config): Promise<Results>;
 
 import { ImportResults, Options } from "mixpanel-import";
+import { Readable } from "stream";
 
 interface Results {
-	events: ImportResults;
-	users: ImportResults;
-	groups: {};
+    events: ImportResults;
+    users: ImportResults;
+    groups: {};
 }
 
 /**
@@ -23,6 +24,10 @@ interface Config extends Options {
      * a file containing UNCOMPRESSED amplitude event json
      */
     file?: string;
+	/**
+	 * a file stream of UNCOMPRESSED amplitude event json
+	 */
+	stream?: Readable;
     /**
      * mixpanel secret
      */
@@ -72,14 +77,14 @@ interface Config extends Options {
      * send groups
      */
     groups?: boolean;
-	/**
-	 * rename prop keys
-	 */
-	aliases: Options["aliases"];
-	/**
-	 * add arbitrary k:v pairs to records
-	 */
-	tags: Options["tags"];
+    /**
+     * rename prop keys
+     */
+    aliases: Options["aliases"];
+    /**
+     * add arbitrary k:v pairs to records
+     */
+    tags: Options["tags"];
     [x: string]: unknown;
 }
 
