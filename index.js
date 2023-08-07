@@ -352,6 +352,20 @@ function cli() {
 			describe: "write logfile",
 			type: "boolean"
 		})
+		.options("epoch-start", {
+			demandOption: false,
+			alias: 'epochStart',
+			default: 0,
+			describe: 'don\'t import data before this timestamp (UNIX EPOCH)',
+			type: 'number'
+		})
+		.options("epoch-end", {
+			demandOption: false,
+			default: 9991427224,
+			alias: 'epochEnd',
+			describe: 'don\'t import data after this timestamp (UNIX EPOCH)',
+			type: 'number'
+		})
 		.help().argv;
 	/** @type {import('./types.d.ts').Config} */
 	return args;
