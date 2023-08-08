@@ -43,7 +43,7 @@ async function main(config) {
 	const transformOpts = { custom_user_id };
 	const l = log(verbose);
 	l("start!\n\nsettings:\n");
-	l({ project, dir, file, stream, secret, token, strict, region, verbose, logs, events, users, groups, custom_user_id, aliases, tags, });
+	l({ project, dir, file, stream, secret, token, strict, region, verbose, logs, events, users, groups, custom_user_id, aliases, tags, ...otherOpts });
 
 	/** @type {import('mixpanel-import').Options} */
 	const commonOptions = {
@@ -57,7 +57,8 @@ async function main(config) {
 		region,
 		strict,
 		aliases,
-		tags
+		tags,
+		...otherOpts
 	};
 
 	/** @type {import('mixpanel-import').Options} */
