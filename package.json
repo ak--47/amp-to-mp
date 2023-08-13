@@ -1,6 +1,6 @@
 {
   "name": "amp-to-mp",
-  "version": "1.1.53",
+  "version": "1.1.54",
   "description": "basic CLI for moving amplitude data to mixpanel",
   "main": "index.js",
   "scripts": {
@@ -21,7 +21,7 @@
     "ak-tools": "^1.0.322",
     "dayjs": "^1.11.7",
     "es-main": "^1.2.0",
-    "mixpanel-import": "^2.4.2",
+    "mixpanel-import": "^2.4.3",
     "yargs": "^17.7.1"
   },
   "devDependencies": {
