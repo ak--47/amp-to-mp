@@ -122,26 +122,33 @@ async function main(config) {
 	let userImport = {};
 	let groupImport = {};
 
+	const tasks = [];
+
 	if (users) {
-		//@ts-ignore
-		userImport = await mp(creds, data, optionsUsers);
-		//@ts-ignore
-		l(`\n${u.comma(userImport.success)} user profiles imported`);
+		tasks.push((async () => {
+			//@ts-ignore
+			userImport = await mp(creds, data, optionsUsers);
+			l(`\n${u.comma(userImport.success)} user profiles imported`);
+		})());
 	}
-
+	
 	if (events) {
-		//@ts-ignore
-		eventImport = await mp(creds, data, optionsEvents);
-		//@ts-ignore
-		l(`\n${u.comma(eventImport.success)} events imported`);
+		tasks.push((async () => {
+			//@ts-ignore
+			eventImport = await mp(creds, data, optionsEvents);
+			l(`\n${u.comma(eventImport.success)} events imported`);
+		})());
 	}
-
+	
 	if (groups) {
-		//@ts-ignore
-		groupImport = await mp(creds, data, optionsGroup);
-		//@ts-ignore
-		l(`\n${u.comma(groupImport.success)} user profiles imported`);
+		tasks.push((async () => {
+			//@ts-ignore
+			groupImport = await mp(creds, data, optionsGroup);
+			l(`\n${u.comma(groupImport.success)} user profiles imported`);
+		})());
 	}
+	
+	await Promise.all(tasks);
 
 	const results = { events: eventImport, users: userImport, groups: groupImport };
 
