@@ -1,12 +1,16 @@
 # amp-to-mp
- take amplitude json files... bring them to mixpanel... (using simplified id merge)
+this module will take in (uncompressed) amplitude raw files, transform them, and send them to mixpanel.
 
-## tldr;
+this module can be used in combination with [`amp-ext`](https://github.com/ak--47/amp-ext) to do a full historical migration
+
+it is implemented as a CLI and requires [Node.js](https://nodejs.org/en/download).
+
+## usage
 ```bash
 npx amp-to-mp --dir ./data ---token bar --secret qux --project foo
 ```
 
-### help
+### help / options
 ```bash
 npx amp-to-mp --help
 ```

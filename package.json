@@ -15,7 +15,7 @@
   "type": "module",
   "types": "./types.d.ts",
   "keywords": [],
-  "author": "",
+  "author": "AK",
   "license": "ISC",
   "dependencies": {
     "ak-tools": "^1.0.322",
