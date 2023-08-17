@@ -74,6 +74,7 @@ async function main(config) {
 	const optionsUsers = {
 		recordType: "user",
 		fixData: true,
+		dedupe: true, //cuts down on the number of requests when the user_properties are the same
 		//@ts-ignore
 		transformFunc: ampUserToMp(transformOpts),
 		...commonOptions

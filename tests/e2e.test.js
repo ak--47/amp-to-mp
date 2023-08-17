@@ -42,7 +42,7 @@ describe('e2e', () => {
 		const { events, users, groups } = await main(CONFIG);
 		expect(events.success).toBe(8245);
 		expect(events.failed).toBe(0);
-		expect(users.success).toBe(5168);
+		expect(users.success).toBe(350);
 		expect(users.failed).toBe(0);
 		expect(JSON.stringify(groups)).toBe('{}');
 
@@ -75,7 +75,7 @@ describe('e2e', () => {
 		});
 		expect(events.success).toBe(8245);
 		expect(events.failed).toBe(0);
-		expect(users.success).toBe(5168);
+		expect(users.success).toBe(350);
 		expect(users.failed).toBe(0);
 		expect(JSON.stringify(groups)).toBe('{}');
 	}, timeout);
@@ -88,7 +88,7 @@ describe('e2e', () => {
 		});
 		expect(events.success).toBe(8245);
 		expect(events.failed).toBe(0);
-		expect(users.success).toBe(5168);
+		expect(users.success).toBe(350);
 		expect(users.failed).toBe(0);
 		expect(JSON.stringify(groups)).toBe('{}');
 	}, timeout);
