@@ -29,13 +29,6 @@ const CONFIG = {
 };
 
 
-describe('do tests work?', () => {
-	test('a = a', () => {
-		expect(true).toBe(true);
-	});
-});
-
-
 describe('e2e', () => {
 	test('works as module', async () => {
 		console.log('MODULE TEST');

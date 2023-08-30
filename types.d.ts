@@ -3,8 +3,9 @@
  */
 export default async function main(config: Config): Promise<Results>;
 
-import { ImportResults, Options } from "mixpanel-import";
+import { ImportResults, Options, Data } from "mixpanel-import";
 import { Readable } from "stream";
+import { ReadStream } from "fs";
 
 interface Results {
     events: ImportResults;
@@ -27,7 +28,7 @@ interface Config extends Options {
 	/**
 	 * a file stream of UNCOMPRESSED amplitude event json
 	 */
-	stream?: Readable;
+	stream?: ReadStream;
     /**
      * mixpanel secret
      */

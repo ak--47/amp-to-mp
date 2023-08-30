@@ -10,6 +10,9 @@ import path from "path";
 import { lstatSync } from "fs";
 dayjs.extend(utc);
 
+/** @typedef {import('./types.d.ts').Config} Config */
+
+
 /*
 ----
 MAIN
@@ -18,7 +21,7 @@ MAIN
 
 /**
  *
- * @param  {import('./types.d.ts').Config} config
+ * @param  {Config} config
  */
 async function main(config) {
 	const {
@@ -65,7 +68,6 @@ async function main(config) {
 	const optionsEvents = {
 		recordType: "event",
 		compress: true,
-		//@ts-ignore
 		transformFunc: ampEventsToMp(transformOpts),
 		...commonOptions
 	};
@@ -75,7 +77,6 @@ async function main(config) {
 		recordType: "user",
 		fixData: true,
 		dedupe: true, //cuts down on the number of requests when the user_properties are the same
-		//@ts-ignore
 		transformFunc: ampUserToMp(transformOpts),
 		...commonOptions
 	};
@@ -84,13 +85,11 @@ async function main(config) {
 	const optionsGroup = {
 		recordType: "group",
 		fixData: true,
-		//@ts-ignore
 		transformFunc: ampGroupToMp(transformOpts),
 		...commonOptions
 	};
 
 	/** @type {import('mixpanel-import').Creds} */
-	//@ts-ignore
 	const creds = {
 		secret,
 		token,
@@ -127,28 +126,25 @@ async function main(config) {
 
 	if (users) {
 		tasks.push((async () => {
-			//@ts-ignore
 			userImport = await mp(creds, data, optionsUsers);
 			l(`\n${u.comma(userImport.success)} user profiles imported`);
 		})());
 	}
-	
+
 	if (events) {
 		tasks.push((async () => {
-			//@ts-ignore
 			eventImport = await mp(creds, data, optionsEvents);
 			l(`\n${u.comma(eventImport.success)} events imported`);
 		})());
 	}
-	
+
 	if (groups) {
 		tasks.push((async () => {
-			//@ts-ignore
 			groupImport = await mp(creds, data, optionsGroup);
 			l(`\n${u.comma(groupImport.success)} user profiles imported`);
 		})());
 	}
-	
+
 	await Promise.all(tasks);
 
 	const results = { events: eventImport, users: userImport, groups: groupImport };
@@ -375,7 +371,22 @@ function cli() {
 			describe: 'don\'t import data after this timestamp (UNIX EPOCH)',
 			type: 'number'
 		})
-		.help().argv;
+		.options("tags", {
+			demandOption: false,
+			default: "{}",
+			describe: 'tags to add to each record; {"key": "value"}',
+			type: 'string'
+		})
+		.options("aliases", {
+			demandOption: false,
+			default: "{}",
+			describe: 'rename property keys on each record; {"oldPropKey": "newPropKey"}',
+			type: 'string'
+		})
+		
+		.help()
+		.wrap(null)
+		.argv;
 	/** @type {import('./types.d.ts').Config} */
 	return args;
 }
@@ -468,10 +479,10 @@ EXPORTS
 export default main;
 
 if (esMain(import.meta)) {
-	console.log(hero);
-	//@ts-ignore
-	const params = cli();
-	//@ts-ignore
+	console.log(hero);	
+	const params = cli();	
+	
+	// @ts-ignore
 	main(params)
 		.then(() => {
 			console.log(`\n\nhooray! all done!\n\n`);
