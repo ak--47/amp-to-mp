@@ -22,7 +22,7 @@
     "ak-tools": "^1.0.322",
     "dayjs": "^1.11.7",
     "es-main": "^1.2.0",
-    "mixpanel-import": "^2.5.12",
+    "mixpanel-import": "^2.5.13",
     "yargs": "^17.7.1"
   },
   "devDependencies": {

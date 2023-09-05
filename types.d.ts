@@ -1,7 +1,7 @@
 /**
  * a module to import amplitude data into mixpanel
  */
-export default async function main(config: Config): Promise<Results>;
+export default function main(config: Config): Promise<Results>;
 
 import { ImportResults, Options, Data } from "mixpanel-import";
 import { Readable } from "stream";
@@ -53,7 +53,7 @@ interface Config extends Options {
     /**
      * US or EU residency
      */
-    region?: "US" | "EU" | undefined;
+    region?: Options["region"];
     /**
      * group keys (if applicable)
      */
@@ -86,7 +86,7 @@ interface Config extends Options {
      * add arbitrary k:v pairs to records
      */
     tags: Options["tags"];
-    [x: string]: unknown;
+
 }
 
 interface CustomTransformOptions {

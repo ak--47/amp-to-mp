@@ -1,5 +1,4 @@
 #! /usr/bin/env node
-// @ts-check
 import u from "ak-tools";
 import esMain from "es-main";
 import yargs from "yargs";
@@ -95,7 +94,10 @@ async function main(config) {
 		token,
 		project
 	};
+	
+	// resolving data type
 	const data = dir || file ? path.resolve(dir || file) : stream;
+	if (!data) throw "no data provided; please provide a path to a file or folder or a stream";
 	if (typeof data === "string") {
 		let pathInfos;
 		try {
@@ -164,10 +166,11 @@ TRANSFORMS
 */
 
 /**
+ * returns a function that transforms an amplitude event into a mixpanel event
  * @param  {import('./types.d.ts').CustomTransformOptions} options
  */
-function ampEventsToMp(options) {
-	const { custom_user_id } = options;
+export function ampEventsToMp(options) {
+	const { custom_user_id = "user_id" } = options;
 
 	return function transform(ampEvent) {
 		const mixpanelEvent = {
@@ -219,10 +222,11 @@ function ampEventsToMp(options) {
 }
 
 /**
+ * returns a function that transforms an amplitude user into a mixpanel user
  * @param  {import('./types.d.ts').CustomTransformOptions} options
  */
-function ampUserToMp(options) {
-	const { custom_user_id } = options;
+export function ampUserToMp(options) {
+	const { custom_user_id = "user_id" } = options;
 
 	return function transform(ampEvent) {
 		const userProps = ampEvent.user_properties;
@@ -256,9 +260,10 @@ function ampUserToMp(options) {
 }
 
 /**
+ * returns a function that transforms an amplitude group into a mixpanel group
  * @param  {import('./types.d.ts').CustomTransformOptions} options
  */
-function ampGroupToMp(options) {
+export function ampGroupToMp(options) {
 	const { custom_user_id } = options;
 
 	return function transform(ampEvent) {
@@ -397,42 +402,6 @@ LOGGING
 ----
 */
 
-function summarize(data) {
-	const summary = data.reduce(
-		function (acc, curr, index, array) {
-			acc.batches += curr.batches;
-			acc.duration += curr.duration;
-			acc.failed += curr.failed;
-			acc.requests += curr.requests;
-			acc.retries += curr.retries;
-			acc.success += curr.success;
-			acc.total += curr.total;
-
-			acc.eps = u.avg(acc.eps, curr.eps);
-			acc.rps = u.avg(acc.rps, curr.rps);
-
-			acc.errors = [...acc.errors, ...curr.errors];
-			acc.responses = [...acc.responses, ...curr.responses];
-			acc.recordType = curr.recordType;
-			return acc;
-		},
-		{
-			batches: 0,
-			duration: 0,
-			eps: 0,
-			errors: [],
-			failed: 0,
-			recordType: "",
-			requests: 0,
-			responses: [],
-			retries: 0,
-			rps: 0,
-			success: 0,
-			total: 0
-		}
-	);
-	return summary;
-}
 
 function log(verbose) {
 	return function (data) {
@@ -449,7 +418,7 @@ RANDOM
 //amp to mp default props
 // ? https://developers.amplitude.com/docs/identify-api
 // ? https://help.mixpanel.com/hc/en-us/articles/115004613766-Default-Properties-Collected-by-Mixpanel
-const ampMixPairs = [
+export const ampMixPairs = [
 	["app_version", "$app_version_string"],
 	["os_name", "$os"],
 	["os_name", "$browser"],
@@ -480,7 +449,8 @@ export default main;
 
 if (esMain(import.meta)) {
 	console.log(hero);	
-	const params = cli();	
+	const params = cli();
+
 	
 	// @ts-ignore
 	main(params)
